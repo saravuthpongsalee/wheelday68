@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #eef2f3; }
+    .picker-container { display: flex; justify-content: center; align-items: center; margin-top: 50px; gap: 15px; }
+    .picker-column { display: flex; flex-direction: column; align-items: center; position: relative; }
+    .picker-label { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+    .wheel-container { width: 90px; height: 120px; overflow: hidden; position: relative; border: 2px solid #007bff; border-radius: 10px; background: #ffffff; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); }
+    .wheel-list { list-style: none; padding: 0; margin: 0; position: absolute; width: 100%; transition: transform 0.2s ease-out; }
+    .wheel-item { height: 30px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #333; }
+    .highlight-bar { position: absolute; top: 50%; left: 0; width: 100%; height: 30px; background: rgba(0, 123, 255, 0.2); border-radius: 5px; pointer-events: none; transform: translateY(-50%); }
+    .confirm-btn { margin-top: 20px; padding: 10px 20px; font-size: 18px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    .confirm-btn:hover { background: #0056b3; }
+    #result { font-size: 18px; margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>เลือกวันที่</h2>
+  <div class="picker-container">
+    <div class="picker-column">
+      <div class="picker-label">วัน</div>
+      <div class="wheel-container" id="dayPicker">
+        <div class="highlight-bar"></div>
+        <ul class="wheel-list" id="dayList"></ul>
+      </div>
+    </div>
+    <div class="picker-column">
+      <div class="picker-label">เดือน</div>
+      <div class="wheel-container" id="monthPicker">
+        <div class="highlight-bar"></div>
+        <ul class="wheel-list" id="monthList"></ul>
+      </div>
+    </div>
+    <div class="picker-column">
+      <div class="picker-label">ปี</div>
+      <div class="wheel-container" id="yearPicker">
+        <div class="highlight-bar"></div>
+        <ul class="wheel-list" id="yearList"></ul>
+      </div>
+    </div>
+  </div>
+  <button class="confirm-btn" onclick="getSelectedDate()">ยืนยัน</button>
+  <p id="result"></p>
+
+  <script>
+    const tickSound = new Audio('https://www.fesliyanstudios.com/play-mp3/4388');
+    tickSound.volume = 0.3;
+    let soundTimeout;
+    
+    function createWheelPicker(id, items, loopCount = 3) {
+      let picker = document.getElementById(id);
+      let list = picker.querySelector(".wheel-list");
+      
+      let extendedItems = [];
+      for (let i = 0; i < loopCount; i++) {
+        extendedItems = extendedItems.concat(items);
+      }
+      
+      extendedItems.forEach((item) => {
+        let li = document.createElement("li");
+        li.classList.add("wheel-item");
+        li.textContent = item;
+        li.dataset.value = item;
+        list.appendChild(li);
+      });
+      
+      let currentIndex = Math.floor(extendedItems.length / 2);
+      function updatePosition(prevIndex) {
+        list.style.transform = `translateY(calc(-${currentIndex * 30}px + 45px))`;
+        if (currentIndex !== prevIndex) {
+          tickSound.currentTime = 0;
+          tickSound.play();
+        }
+        clearTimeout(soundTimeout);
+        soundTimeout = setTimeout(() => { tickSound.pause(); }, 100);
+        
+        if (currentIndex <= 0) {
+          currentIndex = items.length * (loopCount - 2);
+          list.style.transition = "none";
+          updatePosition(currentIndex);
+          setTimeout(() => { list.style.transition = "transform 0.2s ease-out"; }, 50);
+        }
+        if (currentIndex >= extendedItems.length - 1) {
+          currentIndex = items.length;
+          list.style.transition = "none";
+          updatePosition(currentIndex);
+          setTimeout(() => { list.style.transition = "transform 0.2s ease-out"; }, 50);
+        }
+      }
+      
+      picker.addEventListener("wheel", (event) => {
+        event.preventDefault();
+        let prevIndex = currentIndex;
+        if (event.deltaY > 0) {
+          currentIndex++;
+        } else {
+          currentIndex--;
+        }
+        updatePosition(prevIndex);
+        picker.setAttribute("data-selected-index", currentIndex % items.length);
+      });
+      
+      picker.setAttribute("data-selected-index", currentIndex % items.length);
+      updatePosition(currentIndex);
+    }
+    
+    function getSelectedDate() {
+      let selectedDay = document.querySelector("#dayPicker").getAttribute("data-selected-index");
+      let selectedMonth = document.querySelector("#monthPicker").getAttribute("data-selected-index");
+      let selectedYear = document.querySelector("#yearPicker").getAttribute("data-selected-index");
+      
+      let dayValue = document.querySelectorAll("#dayList .wheel-item")[selectedDay].dataset.value;
+      let monthValue = document.querySelectorAll("#monthList .wheel-item")[selectedMonth].dataset.value;
+      let yearValue = document.querySelectorAll("#yearList .wheel-item")[selectedYear].dataset.value;
+      
+      document.getElementById('result').innerText = `วันที่เลือก: ${dayValue} ${monthValue} ${yearValue}`;
+    }
+    
+    document.addEventListener("DOMContentLoaded", function() {
+      createWheelPicker("dayPicker", Array.from({length: 31}, (_, i) => (i + 1).toString()));
+      createWheelPicker("monthPicker", ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]);
+      let currentYear = new Date().getFullYear();
+      createWheelPicker("yearPicker", Array.from({length: 50}, (_, i) => (currentYear - 25 + i).toString()));
+    });
+  </script>
+</body>
+</html>
